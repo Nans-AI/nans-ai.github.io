@@ -6,7 +6,7 @@ interface AppConfig {
 }
 
 let cfg: AppConfig;
-let history: { role: string; content: string }[] = [];
+let chatHistory: { role: string; content: string }[] = [];
 
 const chatBox = document.getElementById("chat-messages") as HTMLDivElement;
 const heroEl = document.getElementById("hero-welcome") as HTMLDivElement;
@@ -87,7 +87,7 @@ async function sendMessage() {
     return;
   }
 
-  history.push({ role: "user", content: text });
+  chatHistory.push({ role: "user", content: text });
   const thinking = addMessage("diana", "•••");
 
   try {
@@ -97,12 +97,12 @@ async function sendMessage() {
       body: JSON.stringify({
         bossCode,
         systemPrompt: cfg.persona.system_prompt,
-        messages: history.slice(-10)
+        messages: chatHistory.slice(-10)
       })
     });
     const data = await res.json();
     thinking.textContent = data.reply;
-    history.push({ role: "assistant", content: data.reply });
+    chatHistory.push({ role: "assistant", content: data.reply });
   } catch {
     thinking.textContent = "Maaf bro, koneksi ke server lagi gangguan.";
   }
@@ -155,13 +155,13 @@ async function init() {
   });
 
   document.getElementById("new-chat-btn")?.addEventListener("click", () => {
-    history = [];
+    chatHistory = [];
     chatBox.innerHTML = "";
     heroEl.classList.remove("hidden");
   });
 
   document.getElementById("clear-history-btn")?.addEventListener("click", () => {
-    history = [];
+    chatHistory = [];
     chatBox.innerHTML = "";
     heroEl.classList.remove("hidden");
     closeDrawer();
@@ -172,3 +172,4 @@ async function init() {
 }
 
 init();
+    
