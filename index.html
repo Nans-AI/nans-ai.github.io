@@ -1,58 +1,68 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="obsidian">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nans Dev AI — Diana Assistant</title>
+  <title>Nans Dev AI — Diana</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div class="app-container">
-    <header class="top-bar">
-      <div class="brand">
-        <span class="dot"></span>
-        <h1>Nans Dev AI</h1>
+  <div class="app-shell">
+    <header class="topbar">
+      <button id="menu-btn" class="icon-btn" aria-label="Menu">☰</button>
+      <div class="brand-title">
+        <span class="pulse-dot"></span>
+        <span>Nans Dev AI</span>
       </div>
-      <div class="controls">
-        <select id="provider-select" aria-label="Pilih Provider AI"></select>
-        <button id="open-settings" title="Pengaturan API & Bos Mode">⚙️</button>
-      </div>
+      <button id="new-chat-btn" class="icon-btn" title="Obrolan Baru">＋</button>
     </header>
 
-    <div class="status-strip">
-      <span>Persona: <strong>Diana</strong></span>
-      <span id="quota-badge" class="badge">Memuat...</span>
-    </div>
-
-    <main id="chat-box" class="chat-box">
-      <div class="bubble diana">Halo! Aku Diana dari Nans Dev AI. Mau ngobrol pakai Zai AI atau SambaNova AI hari ini? 😉🔥</div>
+    <main id="chat-area" class="chat-area">
+      <div id="hero-welcome" class="hero-welcome">
+        <div class="hero-badge">DIANA ENGINE v2.0</div>
+        <h1>Ada yang bisa Diana bantu?</h1>
+        <p>Tanya coding, ide bisnis, atau ngobrol santai bareng asisten Nans Dev.</p>
+      </div>
+      <div id="chat-messages" class="chat-messages"></div>
     </main>
 
-    <footer class="input-dock">
-      <input type="text" id="user-input" placeholder="Tanya sesuatu ke Diana..." autocomplete="off" />
-      <button id="send-btn">Kirim</button>
+    <footer class="composer-wrap">
+      <div class="composer-box">
+        <input type="text" id="user-input" placeholder="Kirim pesan ke Diana..." autocomplete="off" />
+        <button id="send-btn" class="send-btn" aria-label="Kirim">➤</button>
+      </div>
     </footer>
   </div>
 
-  <!-- Modal Pengaturan API Key & Mode Bos -->
-  <div id="settings-modal" class="modal hidden">
-    <div class="modal-card">
-      <h2>Pengaturan API & Akses</h2>
-      <label>Zai AI API Key</label>
-      <input type="password" id="key-zai" placeholder="Masukkan Zai AI Key..." />
-      
-      <label>SambaNova AI API Key</label>
-      <input type="password" id="key-sambanova" placeholder="Masukkan SambaNova Key..." />
-      
-      <label>Kode Bos (Unlimited Chat)</label>
-      <input type="password" id="boss-pass" placeholder="Khusus Owner Nans Dev..." />
+  <!-- Sidebar Drawer Menu Hamburger -->
+  <div id="drawer-backdrop" class="drawer-backdrop hidden"></div>
+  <aside id="nav-drawer" class="nav-drawer">
+    <div class="drawer-head">
+      <h2>Menu & Pengaturan</h2>
+      <button id="close-drawer" class="icon-btn">✕</button>
+    </div>
 
-      <div class="modal-actions">
-        <button id="close-settings" class="btn-secondary">Batal</button>
-        <button id="save-settings" class="btn-primary">Simpan</button>
+    <div class="drawer-section">
+      <span class="section-label">TEMA TAMPILAN (4 WARNA)</span>
+      <div class="theme-grid">
+        <button class="theme-chip active" data-set-theme="obsidian">🌑 Obsidian</button>
+        <button class="theme-chip" data-set-theme="emerald">🌲 Emerald</button>
+        <button class="theme-chip" data-set-theme="crimson">🍷 Crimson</button>
+        <button class="theme-chip" data-set-theme="royal">🌌 Royal</button>
       </div>
     </div>
-  </div>
+
+    <div class="drawer-section">
+      <span class="section-label">AKSES MODE BOS</span>
+      <p id="boss-status" class="status-note">Status: Mode Tamu (Limit Aktif)</p>
+      <input type="password" id="boss-code-input" placeholder="Masukkan Kode Mode Bos..." />
+      <button id="verify-boss-btn" class="primary-btn">Aktifkan Mode Bos</button>
+    </div>
+
+    <div class="drawer-section">
+      <button id="clear-history-btn" class="danger-btn">🗑️ Hapus Riwayat Chat</button>
+    </div>
+  </aside>
 
   <script type="module" src="./app.js"></script>
 </body>
