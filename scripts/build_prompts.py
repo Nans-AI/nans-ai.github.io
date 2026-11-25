@@ -9,7 +9,7 @@ def generate_ai_config():
         "owner": "Yusnan Yulyakso",
         "guest_limit": 15,
         "reset_hours": 24,
-        "worker_url": "https://GANTI-DENGAN-URL-WORKER-LU.workers.dev",
+        "worker_url": "https://delicate-haze-bfb4.nanslumbang.workers.dev",
         "persona": {
             "name": "Diana",
             "system_prompt": (
@@ -26,7 +26,7 @@ def generate_ai_config():
     with open("dist/config.json", "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
     
-    print("[PYTHON] dist/config.json aman & siap!")
+    print("[PYTHON] dist/config.json aman & terkoneksi ke Worker!")
 
 if __name__ == "__main__":
     generate_ai_config()
