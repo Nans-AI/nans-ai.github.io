@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nans Dev AI — Diana Assistant</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="app-container">
+    <header class="top-bar">
+      <div class="brand">
+        <span class="dot"></span>
+        <h1>Nans Dev AI</h1>
+      </div>
+      <div class="controls">
+        <select id="provider-select" aria-label="Pilih Provider AI"></select>
+        <button id="open-settings" title="Pengaturan API & Bos Mode">⚙️</button>
+      </div>
+    </header>
+
+    <div class="status-strip">
+      <span>Persona: <strong>Diana</strong></span>
+      <span id="quota-badge" class="badge">Memuat...</span>
+    </div>
+
+    <main id="chat-box" class="chat-box">
+      <div class="bubble diana">Halo! Aku Diana dari Nans Dev AI. Mau ngobrol pakai Zai AI atau SambaNova AI hari ini? 😉🔥</div>
+    </main>
+
+    <footer class="input-dock">
+      <input type="text" id="user-input" placeholder="Tanya sesuatu ke Diana..." autocomplete="off" />
+      <button id="send-btn">Kirim</button>
+    </footer>
+  </div>
+
+  <!-- Modal Pengaturan API Key & Mode Bos -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Pengaturan API & Akses</h2>
+      <label>Zai AI API Key</label>
+      <input type="password" id="key-zai" placeholder="Masukkan Zai AI Key..." />
+      
+      <label>SambaNova AI API Key</label>
+      <input type="password" id="key-sambanova" placeholder="Masukkan SambaNova Key..." />
+      
+      <label>Kode Bos (Unlimited Chat)</label>
+      <input type="password" id="boss-pass" placeholder="Khusus Owner Nans Dev..." />
+
+      <div class="modal-actions">
+        <button id="close-settings" class="btn-secondary">Batal</button>
+        <button id="save-settings" class="btn-primary">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
