@@ -1,139 +1,174 @@
-interface Provider {
-  id: string;
-  name: string;
-  endpoint: string;
-  model: string;
-}
-
 interface AppConfig {
-  brand: string;
   guest_limit: number;
-  boss_passcode: string;
+  reset_hours: number;
+  worker_url: string;
   persona: { name: string; system_prompt: string };
-  providers: Provider[];
 }
 
-let config: AppConfig;
-let msgCount = Number(localStorage.getItem("nans_msg_count") || "0");
-let isBoss = localStorage.getItem("nans_is_boss") === "true";
+let cfg: AppConfig;
+let history: { role: string; content: string }[] = [];
 
-const chatBox = document.getElementById("chat-box") as HTMLDivElement;
-const userInput = document.getElementById("user-input") as HTMLInputElement;
-const sendBtn = document.getElementById("send-btn") as HTMLButtonElement;
-const providerSelect = document.getElementById("provider-select") as HTMLSelectElement;
-const quotaBadge = document.getElementById("quota-badge") as HTMLSpanElement;
-const settingsModal = document.getElementById("settings-modal") as HTMLDivElement;
+const chatBox = document.getElementById("chat-messages") as HTMLDivElement;
+const heroEl = document.getElementById("hero-welcome") as HTMLDivElement;
+const inputEl = document.getElementById("user-input") as HTMLInputElement;
+const drawer = document.getElementById("nav-drawer") as HTMLElement;
+const backdrop = document.getElementById("drawer-backdrop") as HTMLDivElement;
+const bossStatus = document.getElementById("boss-status") as HTMLParagraphElement;
 
-async function initApp() {
-  const res = await fetch("./config.json");
-  config = await res.json();
-
-  config.providers.forEach((p) => {
-    const opt = document.createElement("option");
-    opt.value = p.id;
-    opt.textContent = p.name;
-    providerSelect.appendChild(opt);
-  });
-
-  (document.getElementById("key-zai") as HTMLInputElement).value = localStorage.getItem("key_zai") || "";
-  (document.getElementById("key-sambanova") as HTMLInputElement).value = localStorage.getItem("key_sambanova") || "";
-  updateQuotaUI();
+function formatJam(ts: number): string {
+  const d = new Date(ts);
+  return d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }).replace(".", ":");
 }
 
-function updateQuotaUI() {
-  if (isBoss) {
-    quotaBadge.textContent = "👑 Bos Mode: Unlimited";
-    quotaBadge.classList.add("boss");
-  } else {
-    const sisa = Math.max(0, config.guest_limit - msgCount);
-    quotaBadge.textContent = `Sisa Chat: ${sisa}/${config.guest_limit}`;
+function getQuotaState() {
+  const now = Date.now();
+  let startTs = Number(localStorage.getItem("nans_cycle_start") || "0");
+  let count = Number(localStorage.getItem("nans_msg_count") || "0");
+  const resetMs = (cfg?.reset_hours || 24) * 3600 * 1000;
+
+  if (startTs && now - startTs >= resetMs) {
+    startTs = 0;
+    count = 0;
+    localStorage.removeItem("nans_cycle_start");
+    localStorage.setItem("nans_msg_count", "0");
   }
+  return { startTs, count };
 }
 
-function appendBubble(sender: "user" | "diana", text: string) {
-  const div = document.createElement("div");
-  div.className = `bubble ${sender}`;
-  div.textContent = text;
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
-  return div;
+function addMessage(sender: "user" | "diana", text: string) {
+  heroEl.classList.add("hidden");
+  const row = document.createElement("div");
+  row.className = `msg-row ${sender}`;
+  const bubble = document.createElement("div");
+  bubble.className = "msg-bubble";
+  bubble.textContent = text;
+  row.appendChild(bubble);
+  chatBox.appendChild(row);
+  chatBox.parentElement!.scrollTop = chatBox.parentElement!.scrollHeight;
+  return bubble;
 }
 
-async function handleSend() {
-  const text = userInput.value.trim();
+function applyTheme(theme: string) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("nans_theme", theme);
+  document.querySelectorAll(".theme-chip").forEach((btn) => {
+    btn.classList.toggle("active", btn.getAttribute("data-set-theme") === theme);
+  });
+}
+
+async function sendMessage() {
+  const text = inputEl.value.trim();
   if (!text) return;
 
-  if (!isBoss && msgCount >= config.guest_limit) {
-    appendBubble("diana", "Waduh, kuota 15 pesan kamu udah habis bro! Masukkin Kode Bos di pengaturan buat akses unlimited 😉");
+  const bossCode = localStorage.getItem("nans_boss_code") || "";
+  const isBoss = Boolean(bossCode);
+  const quota = getQuotaState();
+
+  if (!isBoss && quota.count >= cfg.guest_limit) {
+    const jamReset = formatJam(quota.startTs || Date.now());
+    addMessage("user", text);
+    inputEl.value = "";
+    addMessage("diana", `Maaf, batas penggunaan sudah tercapai dan akan direset pada pukul ${jamReset}`);
     return;
   }
 
-  appendBubble("user", text);
-  userInput.value = "";
+  addMessage("user", text);
+  inputEl.value = "";
 
   if (!isBoss) {
-    msgCount++;
-    localStorage.setItem("nans_msg_count", String(msgCount));
-    updateQuotaUI();
+    const startTs = quota.startTs || Date.now();
+    localStorage.setItem("nans_cycle_start", String(startTs));
+    localStorage.setItem("nans_msg_count", String(quota.count + 1));
   }
 
-  // Cek pertanyaan asal-usul Diana secara instan
   const lower = text.toLowerCase();
-  if (lower.includes("siapa yang buat") || lower.includes("siapa pencipta") || lower.includes("siapa yang bikin") || lower.includes("asal usul")) {
-    appendBubble("diana", "aku Diana pacar nya bos pengembang web ini😉🔥");
+  if (lower.includes("siapa yang buat") || lower.includes("siapa pencipta") || lower.includes("siapa yang bikin")) {
+    addMessage("diana", "aku Diana pacar nya bos pengembang web ini😉🔥");
     return;
   }
 
-  const provId = providerSelect.value;
-  const provider = config.providers.find((p) => p.id === provId)!;
-  const apiKey = localStorage.getItem(`key_${provId}`) || "";
+  history.push({ role: "user", content: text });
+  const thinking = addMessage("diana", "•••");
 
-  if (!apiKey) {
-    appendBubble("diana", `API Key untuk ${provider.name} belum diisi nih. Klik ikon ⚙️ di atas buat masukkin key-nya dulu ya!`);
-    return;
-  }
-
-  const loadingBubble = appendBubble("diana", "Diana lagi mikir...");
   try {
-    const response = await fetch(provider.endpoint, {
+    const res = await fetch(cfg.worker_url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: provider.model,
-        messages: [
-          { role: "system", content: config.persona.system_prompt },
-          { role: "user", content: text }
-        ]
+        bossCode,
+        systemPrompt: cfg.persona.system_prompt,
+        messages: history.slice(-10)
       })
     });
-
-    const data = await response.json();
-    loadingBubble.textContent = data.choices?.[0]?.message?.content || "Maaf bro, respon dari server kosong.";
-  } catch (err) {
-    loadingBubble.textContent = `Gagal konek ke ${provider.name}. Cek API Key atau koneksi kamu ya!`;
+    const data = await res.json();
+    thinking.textContent = data.reply;
+    history.push({ role: "assistant", content: data.reply });
+  } catch {
+    thinking.textContent = "Maaf bro, koneksi ke server lagi gangguan.";
   }
 }
 
-document.getElementById("open-settings")?.addEventListener("click", () => settingsModal.classList.remove("hidden"));
-document.getElementById("close-settings")?.addEventListener("click", () => settingsModal.classList.add("hidden"));
-document.getElementById("save-settings")?.addEventListener("click", () => {
-  localStorage.setItem("key_zai", (document.getElementById("key-zai") as HTMLInputElement).value.trim());
-  localStorage.setItem("key_sambanova", (document.getElementById("key-sambanova") as HTMLInputElement).value.trim());
-  
-  const pass = (document.getElementById("boss-pass") as HTMLInputElement).value.trim();
-  if (pass === config.boss_passcode) {
-    isBoss = true;
-    localStorage.setItem("nans_is_boss", "true");
-    updateQuotaUI();
+async function init() {
+  const res = await fetch("./config.json");
+  cfg = await res.json();
+
+  applyTheme(localStorage.getItem("nans_theme") || "obsidian");
+  if (localStorage.getItem("nans_boss_code")) {
+    bossStatus.textContent = "Status: 👑 Mode Bos Aktif (Unlimited)";
   }
-  settingsModal.classList.add("hidden");
-});
 
-sendBtn.addEventListener("click", handleSend);
-userInput.addEventListener("keypress", (e) => { if (e.key === "Enter") handleSend(); });
+  document.getElementById("menu-btn")?.addEventListener("click", () => {
+    drawer.classList.add("open");
+    backdrop.classList.remove("hidden");
+  });
+  const closeDrawer = () => {
+    drawer.classList.remove("open");
+    backdrop.classList.add("hidden");
+  };
+  document.getElementById("close-drawer")?.addEventListener("click", closeDrawer);
+  backdrop.addEventListener("click", closeDrawer);
 
-initApp();
-    
+  document.querySelectorAll(".theme-chip").forEach((btn) => {
+    btn.addEventListener("click", () => applyTheme(btn.getAttribute("data-set-theme") || "obsidian"));
+  });
+
+  document.getElementById("verify-boss-btn")?.addEventListener("click", async () => {
+    const code = (document.getElementById("boss-code-input") as HTMLInputElement).value.trim();
+    if (!code) return;
+    bossStatus.textContent = "Memverifikasi ke server...";
+    try {
+      const r = await fetch(cfg.worker_url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "verify_boss", passcode: code })
+      });
+      const d = await r.json();
+      if (d.valid) {
+        localStorage.setItem("nans_boss_code", code);
+        bossStatus.textContent = "Status: 👑 Mode Bos Aktif (Unlimited)";
+      } else {
+        bossStatus.textContent = "Status: ❌ Kode Bos salah!";
+      }
+    } catch {
+      bossStatus.textContent = "Status: Gagal terhubung ke Worker.";
+    }
+  });
+
+  document.getElementById("new-chat-btn")?.addEventListener("click", () => {
+    history = [];
+    chatBox.innerHTML = "";
+    heroEl.classList.remove("hidden");
+  });
+
+  document.getElementById("clear-history-btn")?.addEventListener("click", () => {
+    history = [];
+    chatBox.innerHTML = "";
+    heroEl.classList.remove("hidden");
+    closeDrawer();
+  });
+
+  document.getElementById("send-btn")?.addEventListener("click", sendMessage);
+  inputEl.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
+}
+
+init();
