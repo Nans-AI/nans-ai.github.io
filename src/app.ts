@@ -13,7 +13,15 @@ const heroEl = document.getElementById("hero-welcome") as HTMLDivElement;
 const inputEl = document.getElementById("user-input") as HTMLInputElement;
 const drawer = document.getElementById("nav-drawer") as HTMLElement;
 const backdrop = document.getElementById("drawer-backdrop") as HTMLDivElement;
-const bossStatus = document.getElementById("boss-status") as HTMLParagraphElement;
+const bossStatus = document.getElementById("boss-status") as HTMLDivElement;
+
+const SPARK_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l1.9 5.8a2 2 0 001.3 1.3L21 12l-5.8 1.9a2 2 0 00-1.3 1.3L12 21l-1.9-5.8a2 2 0 00-1.3-1.3L3 12l5.8-1.9a2 2 0 001.3-1.3L12 3z"/></svg>`;
+const SHIELD_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>`;
+
+function setBossBadge(active: boolean, label: string) {
+  bossStatus.classList.toggle("boss-active", active);
+  bossStatus.innerHTML = `${active ? SHIELD_SVG : ""}<span>${label}</span>`;
+}
 
 function formatJam(ts: number): string {
   const d = new Date(ts);
@@ -39,6 +47,14 @@ function addMessage(sender: "user" | "diana", text: string) {
   heroEl.classList.add("hidden");
   const row = document.createElement("div");
   row.className = `msg-row ${sender}`;
+
+  if (sender === "diana") {
+    const avatar = document.createElement("div");
+    avatar.className = "ai-avatar";
+    avatar.innerHTML = SPARK_SVG;
+    row.appendChild(avatar);
+  }
+
   const bubble = document.createElement("div");
   bubble.className = "msg-bubble";
   bubble.textContent = text;
@@ -102,10 +118,14 @@ async function sendMessage() {
     });
     const data = await res.json();
     thinking.textContent = data.reply;
-    chatHistory.push({ role: "assistant", content: data.reply });
+    historyPush(data.reply);
   } catch {
     thinking.textContent = "Maaf bro, koneksi ke server lagi gangguan.";
   }
+}
+
+function historyPush(reply: string) {
+  chatHistory.push({ role: "assistant", content: reply });
 }
 
 async function init() {
@@ -114,7 +134,7 @@ async function init() {
 
   applyTheme(localStorage.getItem("nans_theme") || "obsidian");
   if (localStorage.getItem("nans_boss_code")) {
-    bossStatus.textContent = "Status: 👑 Mode Bos Aktif (Unlimited)";
+    setBossBadge(true, "Mode Bos Aktif (Unlimited)");
   }
 
   document.getElementById("menu-btn")?.addEventListener("click", () => {
@@ -135,7 +155,7 @@ async function init() {
   document.getElementById("verify-boss-btn")?.addEventListener("click", async () => {
     const code = (document.getElementById("boss-code-input") as HTMLInputElement).value.trim();
     if (!code) return;
-    bossStatus.textContent = "Memverifikasi ke server...";
+    setBossBadge(false, "Memverifikasi ke server...");
     try {
       const r = await fetch(cfg.worker_url, {
         method: "POST",
@@ -145,12 +165,12 @@ async function init() {
       const d = await r.json();
       if (d.valid) {
         localStorage.setItem("nans_boss_code", code);
-        bossStatus.textContent = "Status: 👑 Mode Bos Aktif (Unlimited)";
+        setBossBadge(true, "Mode Bos Aktif (Unlimited)");
       } else {
-        bossStatus.textContent = "Status: ❌ Kode Bos salah!";
+        setBossBadge(false, "Kode Bos tidak valid");
       }
     } catch {
-      bossStatus.textContent = "Status: Gagal terhubung ke Worker.";
+      setBossBadge(false, "Gagal terhubung ke server");
     }
   });
 
@@ -172,4 +192,3 @@ async function init() {
 }
 
 init();
-    
